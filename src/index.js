@@ -8,34 +8,13 @@ const express = require('express');
 
 const { PubSub } = require('graphql-subscriptions');
 
+const { typeDefs } = require("./graphql/schemas")
+const { resolvers } = require("./graphql/resolvers")
+const { createMongoDBConnection, dbConfig } = require("./connections");
+
 const pubsub = new PubSub();
 
 const PORT = process.env.PORT || 5000;
-
-const typeDefs = gql`
-    type Post {
-        name: String
-    }
-
-    type Query {
-        post: Post
-    }
-
-    type Subscription {
-        postCreated: Post
-    }
-`;
-
-const resolvers = {
-    Query: {
-        post: () => ({ name: "this is a post name" })
-    },
-    Subscription: {
-        postCreated: {
-            subscribe: () => pubsub.asyncIterator(['POST_CREATED'])
-        }
-    }
-};
 
 const app = express();
 const httpServer = createServer(app);
@@ -67,6 +46,10 @@ const server = new ApolloServer({
 
 (async () => {
     //const func = async () => {
+    if(!dbConfig.isConnected) {
+        await createMongoDBConnection();
+    }
+
     await server.start();
     server.applyMiddleware({ app });
     //};

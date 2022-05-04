@@ -1,6 +1,7 @@
-import { gql } from 'apollo-server-micro';
+//const { gql } = require('@graphql-tools/schema');
+const { gql } = require('apollo-server-express');
 
-export const typeDefs = gql`
+const typeDefs = gql`
     type User {
         image: String
         name: String!
@@ -71,3 +72,5 @@ export const typeDefs = gql`
         addFeedback(feedback: FeedbackInput!): Feedback
     }
 `;
+
+module.exports = { typeDefs };

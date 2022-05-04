@@ -1,9 +1,9 @@
 //import { apiHandler } from 'src/helpers/api-handler'
-const { dbConfig } = require("src/connections");
+const { dbConfig } = require("../..//connections");
 const  { v4 } = require("uuid")
 
 
-export const resolvers = {
+const resolvers = {
     Query: {
         async feedbacks() {
             const { db }  = dbConfig;
@@ -77,3 +77,5 @@ export const resolvers = {
         }
     }
 };
+
+module.exports = { resolvers };
