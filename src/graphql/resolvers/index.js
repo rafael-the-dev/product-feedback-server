@@ -1,7 +1,7 @@
 //import { apiHandler } from 'src/helpers/api-handler'
 const { dbConfig } = require("../..//connections");
 const  { v4 } = require("uuid")
-const { PubSub } = require('graphql-subscriptions');
+const { PubSub, withFilter } = require('graphql-subscriptions');
 
 const pubsub = new PubSub();
 
@@ -19,7 +19,7 @@ const resolvers = {
             if(db === null) throw new Error("DB not set");
 
             const feedback = await db.findOne({ ID: id });
-            console.log(feedback)
+            //console.log(feedback)
             if(feedback === null) throw new Error("Feedback not found");
 
             return feedback;
@@ -36,12 +36,14 @@ const resolvers = {
             if(feedback === null) throw new Error("Feedback not found");
 
             const ID = v4();
-            const comments = [ ...feedback.comments, { ID, ...comment }];
+            const newComment = { ID, ...comment };
+            const comments = [ ...feedback.comments, newComment];
             await db.updateOne({ ID: feedbackID }, { $set: { comments } });
 
-            const result = await db.findOne({ comments: { ID } });
-            console.log(result);
-            return result;
+            //const result = await db.findOne({ comments: { ID } });
+            //console.log("result", newComment);
+            pubsub.publish('FEEDBACK_UPDATED', { feedbackUpdated: newComment }); 
+            return newComment;
         },
         async addCommentReply(_, { reply }) {
             const { db }  = dbConfig;
@@ -82,6 +84,17 @@ const resolvers = {
     Subscription: {
         feedbackCreated: {
             subscribe: () => pubsub.asyncIterator(['FEEDBACK_CREATED'])
+        },
+        feedbackUpdated: {
+            subscribe: withFilter(
+                () => pubsub.asyncIterator(['FEEDBACK_UPDATED']),
+                (payload, variables) => {
+                    console.log("variables", variables)
+                  // Only push an update if the comment is on
+                  // the correct repository for this operation
+                  return (payload.feedbackUpdated.feedbackID === variables.ID);
+                },
+              ),
         }
     }
 };

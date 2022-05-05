@@ -61,14 +61,4 @@ const server = new ApolloServer({
     httpServer.listen(PORT, () => {
         console.log(`Server is now running on http://localhost:${PORT}${server.graphqlPath}`)
     });
-
-    pubsub.publish('FEEDBACK_CREATED', {
-        "feedbackCreated": {
-            "title": "Add a dark theme option 2",
-            "category": "feature",
-            "upVotes": 99,
-            "status": "suggestion",
-            "description": "It would help people with light sensitivities and who prefer dark mode.",
-        }
-    })
 })()
