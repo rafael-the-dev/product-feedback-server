@@ -1,7 +1,9 @@
 //import { apiHandler } from 'src/helpers/api-handler'
 const { dbConfig } = require("../..//connections");
 const  { v4 } = require("uuid")
+const { PubSub } = require('graphql-subscriptions');
 
+const pubsub = new PubSub();
 
 const resolvers = {
     Query: {
@@ -72,8 +74,14 @@ const resolvers = {
                 comments: []
             });
 
-            const result = await db.findOne({ ID })
+            const result = await db.findOne({ ID });
+            pubsub.publish('FEEDBACK_CREATED', { feedbackCreated: result }); 
             return result;
+        }
+    },
+    Subscription: {
+        feedbackCreated: {
+            subscribe: () => pubsub.asyncIterator(['FEEDBACK_CREATED'])
         }
     }
 };

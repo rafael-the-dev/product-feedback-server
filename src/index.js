@@ -1,6 +1,6 @@
 const { createServer } = require('http');
 const { ApolloServerPluginDrainHttpServer } = require("apollo-server-core");
-const { ApolloServer, gql } = require('apollo-server-express');
+const { ApolloServer } = require('apollo-server-express');
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/lib/use/ws');
@@ -16,7 +16,14 @@ const pubsub = new PubSub();
 
 const PORT = process.env.PORT || 5000;
 
-const app = express();
+
+(async () => {
+    //const func = async () => {
+    if(!dbConfig.isConnected) {
+        await createMongoDBConnection();
+    }
+
+    const app = express();
 const httpServer = createServer(app);
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -44,31 +51,24 @@ const server = new ApolloServer({
     ]
 });
 
-(async () => {
-    //const func = async () => {
-    if(!dbConfig.isConnected) {
-        await createMongoDBConnection();
-    }
 
     await server.start();
     server.applyMiddleware({ app });
-    //};
-    
-    //func();
-    
-    wsServer.on("connection", () => {
-        console.log("connected")
-    })
-    
-    
-    /*pubsub.publish('POST_CREATED', {
-        postCreated: {
-          author: 'Ali Baba',
-          comment: 'Open sesame'
-        }
-    });*/
+    wsServer.on("connection", (v, i, b) => {
+        //console.log("connected", v, i, b)
+    });
     
     httpServer.listen(PORT, () => {
         console.log(`Server is now running on http://localhost:${PORT}${server.graphqlPath}`)
+    });
+
+    pubsub.publish('FEEDBACK_CREATED', {
+        "feedbackCreated": {
+            "title": "Add a dark theme option 2",
+            "category": "feature",
+            "upVotes": 99,
+            "status": "suggestion",
+            "description": "It would help people with light sensitivities and who prefer dark mode.",
+        }
     })
 })()

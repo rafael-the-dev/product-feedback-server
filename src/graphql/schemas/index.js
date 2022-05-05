@@ -71,6 +71,10 @@ const typeDefs = gql`
         addCommentReply(reply: CommentReplyInput!): CommentReply
         addFeedback(feedback: FeedbackInput!): Feedback
     }
+
+    type Subscription {
+        feedbackCreated: Feedback
+    }
 `;
 
 module.exports = { typeDefs };
