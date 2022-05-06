@@ -74,7 +74,7 @@ const typeDefs = gql`
 
     type Subscription {
         feedbackCreated: Feedback
-        feedbackUpdated(ID: String!): Comment
+        feedbackUpdated(id: String!): Comment
     }
 `;
 

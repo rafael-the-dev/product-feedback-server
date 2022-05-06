@@ -89,10 +89,9 @@ const resolvers = {
             subscribe: withFilter(
                 () => pubsub.asyncIterator(['FEEDBACK_UPDATED']),
                 (payload, variables) => {
-                    console.log("variables", variables)
                   // Only push an update if the comment is on
                   // the correct repository for this operation
-                  return (payload.feedbackUpdated.feedbackID === variables.ID);
+                  return (payload.feedbackUpdated.feedbackID === variables.id);
                 },
               ),
         }
