@@ -81,6 +81,17 @@ const resolvers = {
             const result = await db.findOne({ ID });
             pubsub.publish('FEEDBACK_CREATED', { feedbackCreated: result }); 
             return result;
+        },
+        async upVoteFeedback(_, { id }) {
+            const { db }  = dbConfig;
+            if(db === null) throw new Error("DB not set");
+
+            const feedback = await db.findOne({ ID: id });
+            await db.updateOne({ ID: id }, { $set: { upVotes: feedback.upVotes + 1 }});
+            
+            const upDatedFeedback = await await db.findOne({ ID: id });
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
+            return upDatedFeedback;
         }
     },
     Subscription: {

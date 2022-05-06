@@ -70,6 +70,7 @@ const typeDefs = gql`
         addComment(comment: CommentInput!): Feedback
         addCommentReply(reply: CommentReplyInput!): Feedback
         addFeedback(feedback: FeedbackInput!): Feedback
+        upVoteFeedback(id: String!): Feedback
     }
 
     type Subscription {
