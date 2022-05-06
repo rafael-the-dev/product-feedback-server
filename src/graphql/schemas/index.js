@@ -67,14 +67,14 @@ const typeDefs = gql`
     }
 
     type Mutation {
-        addComment(comment: CommentInput!): Comment
-        addCommentReply(reply: CommentReplyInput!): CommentReply
+        addComment(comment: CommentInput!): Feedback
+        addCommentReply(reply: CommentReplyInput!): Feedback
         addFeedback(feedback: FeedbackInput!): Feedback
     }
 
     type Subscription {
         feedbackCreated: Feedback
-        feedbackUpdated(id: String!): Comment
+        feedbackUpdated(id: String!): Feedback
     }
 `;
 

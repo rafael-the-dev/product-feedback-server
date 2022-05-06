@@ -41,9 +41,10 @@ const resolvers = {
             await db.updateOne({ ID: feedbackID }, { $set: { comments } });
 
             //const result = await db.findOne({ comments: { ID } });
-            //console.log("result", newComment);
-            pubsub.publish('FEEDBACK_UPDATED', { feedbackUpdated: newComment }); 
-            return newComment;
+            const upDatedFeedback = await db.findOne({ ID: feedbackID });
+
+            pubsub.publish('FEEDBACK_UPDATED', { feedbackUpdated: upDatedFeedback }); 
+            return upDatedFeedback;
         },
         async addCommentReply(_, { reply }) {
             const { db }  = dbConfig;
@@ -61,9 +62,10 @@ const resolvers = {
             comment["replies"] = [ ...comment.replies, newReply ];
             await db.updateOne({ ID: feedbackID }, { $set: { comments: feedback.comments } });
 
-            //const result = await db.findOne({ "comments.replies": { ID } });
-            //console.log(result);
-            return { content, replyingTo, user };
+            const upDatedFeedback = await db.findOne({ ID: feedbackID });
+            console.log(upDatedFeedback);
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
+            return upDatedFeedback;
         },
         async addFeedback(_, { feedback }) {
             const { db }  = dbConfig;
@@ -91,9 +93,10 @@ const resolvers = {
                 (payload, variables) => {
                   // Only push an update if the comment is on
                   // the correct repository for this operation
-                  return (payload.feedbackUpdated.feedbackID === variables.id);
+                  console.log(payload)
+                  return (payload.feedbackUpdated.ID === variables.id);
                 },
-              ),
+            ),
         }
     }
 };
