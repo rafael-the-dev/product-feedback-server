@@ -105,7 +105,7 @@ const resolvers = {
                   // Only push an update if the comment is on
                   // the correct repository for this operation
                   console.log(payload)
-                  return (payload.feedbackUpdated.ID === variables.id);
+                  return (payload.feedbackUpdated.ID === variables.id || variables.id === "null");
                 },
             ),
         }
