@@ -30,10 +30,16 @@ const typeDefs = gql`
         title: String!
         upVotes: Int!
     }
+    
+    type RegisteredUser {
+        name: String!
+        username: String!
+    }
 
     type Query {
         feedbacks: [Feedback!]!
         feedback(id: String): Feedback!
+        user(username: String!): RegisteredUser!
     }
 
     
@@ -66,10 +72,17 @@ const typeDefs = gql`
         upVotes: Int!
     }
 
+    input RegisteredUserInput {
+        name: String!
+        username: String!
+        password: String!
+    }
+
     type Mutation {
         addComment(comment: CommentInput!): Feedback
         addCommentReply(reply: CommentReplyInput!): Feedback
         addFeedback(feedback: FeedbackInput!): Feedback
+        registerUser(user: RegisteredUserInput): RegisteredUser!
         upVoteFeedback(id: String!): Feedback
     }
 

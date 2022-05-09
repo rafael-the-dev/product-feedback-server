@@ -7,7 +7,8 @@ const collectionName = "productFeedback";//config.get("mongoDBConfig.collection"
 
 const dbConfig = { 
     db: null,
-    isConnected: false 
+    isConnected: false ,
+    usersDB: null
 };
 
 const mongoDBConnection = new MongoClient(url);
@@ -23,11 +24,13 @@ const createMongoDBConnection = async () => {
             clusterDB = mongoDBConnection.db(dbName);
             clusterCollection = clusterDB.collection(collectionName);
             dbConfig.db = clusterCollection;
+            dbConfig.usersDB = clusterDB.collection("users")
         });
 
         mongoDBConnection.on("close", () => {
             dbConfig.db = null;
-            dbConfig.isConnected = false
+            dbConfig.isConnected = false;
+            dbConfig.usersDB = null;
         });
 
         await mongoDBConnection.connect();

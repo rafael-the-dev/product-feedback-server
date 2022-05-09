@@ -2,6 +2,7 @@
 const { dbConfig } = require("../..//connections");
 const  { v4 } = require("uuid")
 const { PubSub, withFilter } = require('graphql-subscriptions');
+const bcrypt = require("bcrypt");
 
 const pubsub = new PubSub();
 
@@ -89,9 +90,30 @@ const resolvers = {
             const feedback = await db.findOne({ ID: id });
             await db.updateOne({ ID: id }, { $set: { upVotes: feedback.upVotes + 1 }});
             
-            const upDatedFeedback = await await db.findOne({ ID: id });
+            const upDatedFeedback = await db.findOne({ ID: id });
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
             return upDatedFeedback;
+        },
+        async registerUser(_, { user }) {
+            const { name, username, password } = user;
+            const { usersDB }  = dbConfig;
+            if(usersDB === null) throw new Error("DB not set");
+
+            try {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                const oldUser = await usersDB.findOne({ username });
+
+                if(oldUser === null) {
+                    await usersDB.insertOne({
+                        name,
+                        password: hashedPassword,
+                        username
+                    });
+                    return { name, username };
+                }
+            } catch(err) {
+                console.log(err)
+            }
         }
     },
     Subscription: {
