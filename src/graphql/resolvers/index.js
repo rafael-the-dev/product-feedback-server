@@ -95,6 +95,18 @@ const resolvers = {
             return true;
 
         },
+        async editFeedback(_, { feedback, id }) {
+            const { db }  = dbConfig;
+            if(db === null) throw new Error("DB not set");
+
+            let savedFeedback = await db.findOne({ ID: id });
+            if(savedFeedback === null) throw new Error("Feedback not found");
+
+            await db.updateOne({ ID: id }, { $set: { ...feedback }});
+            savedFeedback = await db.findOne({ ID: id });
+            return savedFeedback;
+
+        },
         async upVoteFeedback(_, { id }) {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
