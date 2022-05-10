@@ -83,6 +83,18 @@ const resolvers = {
             pubsub.publish('FEEDBACK_CREATED', { feedbackCreated: result }); 
             return result;
         },
+        async deleteFeedback(_, { id }) {
+            const { db }  = dbConfig;
+            if(db === null) throw new Error("DB not set");
+
+            const feedback = await db.findOne({ ID: id });
+            if(feedback === null) throw new Error("Feedback not found");
+
+            const result = await db.deleteOne({ ID: id });
+            console.log(result);
+            return true;
+
+        },
         async upVoteFeedback(_, { id }) {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
@@ -93,6 +105,24 @@ const resolvers = {
             const upDatedFeedback = await db.findOne({ ID: id });
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
             return upDatedFeedback;
+        },
+        async login(_, { password, username }) {
+            const { usersDB }  = dbConfig;
+            if(usersDB === null) throw new Error("DB not set");
+
+           // try {
+                const user = await usersDB.findOne({ username });
+                if(user === null) throw new Error("Username or password Invalid");
+
+                if(await bcrypt.compare(password, user.password)) {
+                    return { name: user.name, username };
+                } else {
+                    throw new Error("Username or password Invalid");
+                }
+
+            //} catch(err) {
+
+           // }
         },
         async registerUser(_, { user }) {
             const { name, username, password } = user;

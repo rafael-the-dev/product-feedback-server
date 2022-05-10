@@ -82,6 +82,8 @@ const typeDefs = gql`
         addComment(comment: CommentInput!): Feedback
         addCommentReply(reply: CommentReplyInput!): Feedback
         addFeedback(feedback: FeedbackInput!): Feedback
+        deleteFeedback(id: String!): Boolean
+        login(username: String, password: String): RegisteredUser!
         registerUser(user: RegisteredUserInput): RegisteredUser!
         upVoteFeedback(id: String!): Feedback
     }
