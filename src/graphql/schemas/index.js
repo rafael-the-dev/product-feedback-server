@@ -36,6 +36,11 @@ const typeDefs = gql`
         username: String!
     }
 
+    type FeedbackDeleteStatus {
+        ID: String!
+        status: String!
+    }
+
     type Query {
         feedbacks: [Feedback!]!
         feedback(id: String): Feedback!
@@ -82,7 +87,7 @@ const typeDefs = gql`
         addComment(comment: CommentInput!): Feedback
         addCommentReply(reply: CommentReplyInput!): Feedback
         addFeedback(feedback: FeedbackInput!): Feedback
-        deleteFeedback(id: String!): Boolean
+        deleteFeedback(id: String!): FeedbackDeleteStatus
         editFeedback(id: String!, feedback: FeedbackInput!): Feedback!
         login(username: String, password: String): RegisteredUser!
         registerUser(user: RegisteredUserInput): RegisteredUser!
@@ -91,6 +96,7 @@ const typeDefs = gql`
 
     type Subscription {
         feedbackCreated: Feedback
+        feedbackDeleted: FeedbackDeleteStatus
         feedbackUpdated(id: String!): Feedback
     }
 `;

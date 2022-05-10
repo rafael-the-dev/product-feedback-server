@@ -65,7 +65,7 @@ const resolvers = {
 
             const upDatedFeedback = await db.findOne({ ID: feedbackID });
             console.log(upDatedFeedback);
-            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback });
             return upDatedFeedback;
         },
         async addFeedback(_, { feedback }) {
@@ -90,9 +90,10 @@ const resolvers = {
             const feedback = await db.findOne({ ID: id });
             if(feedback === null) throw new Error("Feedback not found");
 
-            const result = await db.deleteOne({ ID: id });
-            console.log(result);
-            return true;
+            await db.deleteOne({ ID: id });
+            const feedbackDeleted = { ID: id, status: "deleted" };
+            pubsub.publish('FEEDBACK_DELETED', { feedbackDeleted }); 
+            return feedbackDeleted;
 
         },
         async editFeedback(_, { feedback, id }) {
@@ -104,6 +105,7 @@ const resolvers = {
 
             await db.updateOne({ ID: id }, { $set: { ...feedback }});
             savedFeedback = await db.findOne({ ID: id });
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: savedFeedback });
             return savedFeedback;
 
         },
@@ -162,13 +164,16 @@ const resolvers = {
         feedbackCreated: {
             subscribe: () => pubsub.asyncIterator(['FEEDBACK_CREATED'])
         },
+        feedbackDeleted: {
+            subscribe: () => pubsub.asyncIterator(['FEEDBACK_DELETED'])
+        },
         feedbackUpdated: {
             subscribe: withFilter(
                 () => pubsub.asyncIterator(['FEEDBACK_UPDATED']),
                 (payload, variables) => {
                   // Only push an update if the comment is on
                   // the correct repository for this operation
-                  console.log(payload)
+                  //console.log(payload)
                   return (payload.feedbackUpdated.ID === variables.id || variables.id === "null");
                 },
             ),
