@@ -1,79 +1,67 @@
 const  { v4 } = require("uuid")
 const { PubSub, withFilter } = require('graphql-subscriptions');
 const bcrypt = require("bcrypt");
+const { UserInputError } = require("apollo-server-express")
 
 const { dbConfig } = require("../../connections");
 const { validator } = require("../../validations")
-const { fetchByID } = require("../../helpers")
+const { fetchByID, hasDB } = require("../../helpers")
 
 const pubsub = new PubSub();
 
 const resolvers = {
     Query: {
         async feedbacks() {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const feedbacks = await db.find({ }).toArray();
             return feedbacks;
         },
         async feedback(_, { id }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } }) //db.findOne({ ID: id });
-            //console.log(feedback)
-            //if(feedback === null) throw new Error();
 
             return feedback;
         }
     },
     Mutation: {
         async addComment(_, { comment }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const { feedbackID } = comment;
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
-
-           // if(feedback === null) throw new Error("Feedback not found");
 
             const ID = v4();
             const newComment = { ID, ...comment };
             const comments = [ ...feedback.comments, newComment];
             await db.updateOne({ ID: feedbackID }, { $set: { comments } });
 
-            //const result = await db.findOne({ comments: { ID } });
             const upDatedFeedback = await db.findOne({ ID: feedbackID });
 
             pubsub.publish('FEEDBACK_UPDATED', { feedbackUpdated: upDatedFeedback }); 
             return upDatedFeedback;
         },
         async addCommentReply(_, { reply }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const { content, commentID, feedbackID, replyingTo, user } = reply;
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
             
             const comment = feedback.comments.find(item => item.ID === commentID);
-            //console.log(comment)
 
             if(!Boolean(comment)) throw new Error("Comment not found");
 
-            //const ID = v4();
             const newReply = { content, replyingTo, user };
             comment["replies"] = [ ...comment.replies, newReply ];
             await db.updateOne({ ID: feedbackID }, { $set: { comments: feedback.comments } });
 
             const upDatedFeedback = await db.findOne({ ID: feedbackID });
-            //console.log(upDatedFeedback);
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback });
             return upDatedFeedback;
         },
         async addFeedback(_, { feedback }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const ID = v4();
             await db.insertOne({
@@ -87,11 +75,9 @@ const resolvers = {
             return result;
         },
         async deleteFeedback(_, { id }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
-            //if(feedback === null) throw new Error("Feedback not found");
 
             await db.deleteOne({ ID: id });
             const feedbackDeleted = { ID: id, status: "deleted" };
@@ -100,11 +86,9 @@ const resolvers = {
 
         },
         async editFeedback(_, { feedback, id }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             let savedFeedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
-            //if(savedFeedback === null) throw new Error("Feedback not found");
 
             await db.updateOne({ ID: id }, { $set: { ...feedback }});
             savedFeedback = await db.findOne({ ID: id });
@@ -113,8 +97,7 @@ const resolvers = {
 
         },
         async upVoteFeedback(_, { id }) {
-            const { db }  = dbConfig;
-            if(db === null) throw new Error("DB not set");
+            const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
             await db.updateOne({ ID: id }, { $set: { upVotes: feedback.upVotes + 1 }});
@@ -124,27 +107,20 @@ const resolvers = {
             return upDatedFeedback;
         },
         async login(_, { password, username }) {
-            const { usersDB }  = dbConfig;
-            if(usersDB === null) throw new Error("DB not set");
+            const usersDB = hasDB({ dbConfig, key: "usersDB" })
 
-           // try {
-                const user = await usersDB.findOne({ username });
-                if(user === null) throw new Error("Username or password Invalid");
+            const user = await usersDB.findOne({ username });
+            if(user === null) throw new UserInputError("Username or password Invalid");
 
-                if(await bcrypt.compare(password, user.password)) {
-                    return { name: user.name, username };
-                } else {
-                    throw new Error("Username or password Invalid");
-                }
-
-            //} catch(err) {
-
-           // }
+            if(await bcrypt.compare(password, user.password)) {
+                return { name: user.name, username };
+            } else {
+                throw new UserInputError("Username or password Invalid");
+            }
         },
         async registerUser(_, { user }) {
+            const usersDB = hasDB({ dbConfig, key: "usersDB" })
             const { name, username, password } = user;
-            const { usersDB }  = dbConfig;
-            if(usersDB === null) throw new Error("DB not set");
 
             try {
                 const hashedPassword = await bcrypt.hash(password, 10);
