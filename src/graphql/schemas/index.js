@@ -43,7 +43,7 @@ const typeDefs = gql`
 
     type Query {
         feedbacks: [Feedback!]!
-        feedback(id: String): Feedback!
+        feedback(id: String!): Feedback!
         user(username: String!): RegisteredUser!
     }
 
@@ -89,7 +89,7 @@ const typeDefs = gql`
         addFeedback(feedback: FeedbackInput!): Feedback
         deleteFeedback(id: String!): FeedbackDeleteStatus
         editFeedback(id: String!, feedback: FeedbackInput!): Feedback!
-        login(username: String, password: String): RegisteredUser!
+        login(username: String!, password: String!): RegisteredUser!
         registerUser(user: RegisteredUserInput): RegisteredUser!
         upVoteFeedback(id: String!): Feedback
     }

@@ -1,8 +1,10 @@
-//import { apiHandler } from 'src/helpers/api-handler'
-const { dbConfig } = require("../..//connections");
 const  { v4 } = require("uuid")
 const { PubSub, withFilter } = require('graphql-subscriptions');
 const bcrypt = require("bcrypt");
+
+const { dbConfig } = require("../../connections");
+const { validator } = require("../../validations")
+const { fetchByID } = require("../../helpers")
 
 const pubsub = new PubSub();
 
@@ -19,9 +21,9 @@ const resolvers = {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
 
-            const feedback = await db.findOne({ ID: id });
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } }) //db.findOne({ ID: id });
             //console.log(feedback)
-            if(feedback === null) throw new Error("Feedback not found");
+            //if(feedback === null) throw new Error();
 
             return feedback;
         }
@@ -32,9 +34,9 @@ const resolvers = {
             if(db === null) throw new Error("DB not set");
 
             const { feedbackID } = comment;
-            const feedback = await db.findOne({ ID: feedbackID });
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
 
-            if(feedback === null) throw new Error("Feedback not found");
+           // if(feedback === null) throw new Error("Feedback not found");
 
             const ID = v4();
             const newComment = { ID, ...comment };
@@ -52,11 +54,12 @@ const resolvers = {
             if(db === null) throw new Error("DB not set");
 
             const { content, commentID, feedbackID, replyingTo, user } = reply;
-            const feedback = await db.findOne({ ID: feedbackID });
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
+            
             const comment = feedback.comments.find(item => item.ID === commentID);
-            console.log(comment)
+            //console.log(comment)
 
-            if(feedback === null || !Boolean(comment)) throw new Error("Feedback or Comment not found");
+            if(!Boolean(comment)) throw new Error("Comment not found");
 
             //const ID = v4();
             const newReply = { content, replyingTo, user };
@@ -64,7 +67,7 @@ const resolvers = {
             await db.updateOne({ ID: feedbackID }, { $set: { comments: feedback.comments } });
 
             const upDatedFeedback = await db.findOne({ ID: feedbackID });
-            console.log(upDatedFeedback);
+            //console.log(upDatedFeedback);
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback });
             return upDatedFeedback;
         },
@@ -87,8 +90,8 @@ const resolvers = {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
 
-            const feedback = await db.findOne({ ID: id });
-            if(feedback === null) throw new Error("Feedback not found");
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
+            //if(feedback === null) throw new Error("Feedback not found");
 
             await db.deleteOne({ ID: id });
             const feedbackDeleted = { ID: id, status: "deleted" };
@@ -100,8 +103,8 @@ const resolvers = {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
 
-            let savedFeedback = await db.findOne({ ID: id });
-            if(savedFeedback === null) throw new Error("Feedback not found");
+            let savedFeedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
+            //if(savedFeedback === null) throw new Error("Feedback not found");
 
             await db.updateOne({ ID: id }, { $set: { ...feedback }});
             savedFeedback = await db.findOne({ ID: id });
@@ -113,7 +116,7 @@ const resolvers = {
             const { db }  = dbConfig;
             if(db === null) throw new Error("DB not set");
 
-            const feedback = await db.findOne({ ID: id });
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
             await db.updateOne({ ID: id }, { $set: { upVotes: feedback.upVotes + 1 }});
             
             const upDatedFeedback = await db.findOne({ ID: id });
