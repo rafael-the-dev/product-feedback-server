@@ -3,7 +3,6 @@ const { gql } = require('apollo-server-express');
 
 const typeDefs = gql`
     type User {
-        image: String
         name: String!
         username: String!
     }
@@ -29,6 +28,7 @@ const typeDefs = gql`
         status: String!
         title: String!
         upVotes: Int!
+        user: User!
     }
     
     type RegisteredUser {
@@ -49,7 +49,6 @@ const typeDefs = gql`
 
     
     input UserInput {
-        image: String
         name: String!
         username: String!
     }
@@ -75,6 +74,7 @@ const typeDefs = gql`
         status: String!
         title: String!
         upVotes: Int!
+        user: UserInput!
     }
 
     input RegisteredUserInput {
