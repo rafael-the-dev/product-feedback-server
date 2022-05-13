@@ -2,10 +2,13 @@ const  { v4 } = require("uuid")
 const { PubSub, withFilter } = require('graphql-subscriptions');
 const bcrypt = require("bcrypt");
 const { UserInputError } = require("apollo-server-express")
+const jwt = require('jsonwebtoken');
 
 const { dbConfig } = require("../../connections");
 const { validator } = require("../../validations")
 const { fetchByID, hasDB } = require("../../helpers")
+
+const SECRET_KEY = '53a0d1a4174d2e1b8de701437fe06c08891035ed4fd945aef843a75bed2ade0657b3c4ff7ecd8474cb5180b2666c0688bbe640c9eb3d39bb9f2b724a10f343c6';
 
 const pubsub = new PubSub();
 
@@ -111,8 +114,11 @@ const resolvers = {
 
             const user = await usersDB.findOne({ username });
             if(user === null) throw new UserInputError("Username or password Invalid");
-
+            
+            const acessToken = jwt.sign({ username }, SECRET_KEY)
+            console.log(acessToken)
             if(await bcrypt.compare(password, user.password)) {
+                
                 return { name: user.name, username };
             } else {
                 throw new UserInputError("Username or password Invalid");
