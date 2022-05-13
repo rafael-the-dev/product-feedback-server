@@ -33,6 +33,7 @@ const typeDefs = gql`
     
     type RegisteredUser {
         name: String!
+        token: String!
         username: String!
     }
 
@@ -58,14 +59,12 @@ const typeDefs = gql`
         commentID: String!
         feedbackID: String!
         replyingTo: String!
-        user: UserInput!
     }
 
     input CommentInput {
         content: String!
         feedbackID: String!
         replies: [CommentReplyInput]!
-        user: UserInput!
     }
 
     input FeedbackInput {
@@ -74,7 +73,6 @@ const typeDefs = gql`
         status: String!
         title: String!
         upVotes: Int!
-        user: UserInput!
     }
 
     input RegisteredUserInput {

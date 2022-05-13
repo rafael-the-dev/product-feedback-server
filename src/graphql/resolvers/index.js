@@ -15,6 +15,7 @@ const pubsub = new PubSub();
 const resolvers = {
     Query: {
         async feedbacks() {
+            //console.log(context)
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const feedbacks = await db.find({ }).toArray();
@@ -29,14 +30,15 @@ const resolvers = {
         }
     },
     Mutation: {
-        async addComment(_, { comment }) {
+        async addComment(_, { comment }, { user }) {
+            console.log(user)
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const { feedbackID } = comment;
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
 
             const ID = v4();
-            const newComment = { ID, ...comment };
+            const newComment = { ID, ...comment, user: { name: user.name, username: user.username } };
             const comments = [ ...feedback.comments, newComment];
             await db.updateOne({ ID: feedbackID }, { $set: { comments } });
 
@@ -45,17 +47,17 @@ const resolvers = {
             pubsub.publish('FEEDBACK_UPDATED', { feedbackUpdated: upDatedFeedback }); 
             return upDatedFeedback;
         },
-        async addCommentReply(_, { reply }) {
+        async addCommentReply(_, { reply }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
-            const { content, commentID, feedbackID, replyingTo, user } = reply;
+            const { content, commentID, feedbackID, replyingTo } = reply;
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: feedbackID } });//await db.findOne({ ID: feedbackID });
             
             const comment = feedback.comments.find(item => item.ID === commentID);
 
             if(!Boolean(comment)) throw new Error("Comment not found");
 
-            const newReply = { content, replyingTo, user };
+            const newReply = { content, replyingTo, user: { name: user.name, username: user.username } };
             comment["replies"] = [ ...comment.replies, newReply ];
             await db.updateOne({ ID: feedbackID }, { $set: { comments: feedback.comments } });
 
@@ -63,36 +65,40 @@ const resolvers = {
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback });
             return upDatedFeedback;
         },
-        async addFeedback(_, { feedback }) {
+        async addFeedback(_, { feedback }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             const ID = v4();
             await db.insertOne({
                 ID,
                 ...feedback,
-                comments: []
+                comments: [],
+                user: { name: user.name, username: user.username }
             });
 
             const result = await db.findOne({ ID });
             pubsub.publish('FEEDBACK_CREATED', { feedbackCreated: result }); 
             return result;
         },
-        async deleteFeedback(_, { id }) {
+        async deleteFeedback(_, { id }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
-            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
-
+            await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
+            
+            if(feedback.user.username !== user.username ) throw new ForbiddenError("Only the author can delete this feedback")
+            
             await db.deleteOne({ ID: id });
             const feedbackDeleted = { ID: id, status: "deleted" };
             pubsub.publish('FEEDBACK_DELETED', { feedbackDeleted }); 
             return feedbackDeleted;
 
         },
-        async editFeedback(_, { feedback, id }) {
+        async editFeedback(_, { feedback, id }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
             let savedFeedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
-
+            if(feedback.user.username !== user.username ) throw new ForbiddenError("Only the author can edit this feedback");
+            
             await db.updateOne({ ID: id }, { $set: { ...feedback }});
             savedFeedback = await db.findOne({ ID: id });
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: savedFeedback });
@@ -109,17 +115,17 @@ const resolvers = {
             pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
             return upDatedFeedback;
         },
-        async login(_, { password, username }) {
+        async login(_, { password, username }, ) {
             const usersDB = hasDB({ dbConfig, key: "usersDB" })
 
             const user = await usersDB.findOne({ username });
             if(user === null) throw new UserInputError("Username or password Invalid");
             
-            const acessToken = jwt.sign({ username }, SECRET_KEY)
-            console.log(acessToken)
+            const acessToken = jwt.sign({ name: user.name, username }, SECRET_KEY, { expiresIn: "1h" });
+            //console.log(acessToken)
             if(await bcrypt.compare(password, user.password)) {
                 
-                return { name: user.name, username };
+                return { name: user.name, token: acessToken, username };
             } else {
                 throw new UserInputError("Username or password Invalid");
             }
@@ -140,6 +146,7 @@ const resolvers = {
                     });
                     return { name, username };
                 }
+                throw new UserInputError("Username exists");
             } catch(err) {
                 console.log(err)
             }
