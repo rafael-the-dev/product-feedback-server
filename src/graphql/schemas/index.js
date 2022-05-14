@@ -89,6 +89,7 @@ const typeDefs = gql`
         editFeedback(id: String!, feedback: FeedbackInput!): Feedback!
         login(username: String!, password: String!): RegisteredUser!
         registerUser(user: RegisteredUserInput): RegisteredUser!
+        validateToken(token: String!): RegisteredUser!
         upVoteFeedback(id: String!): Feedback
     }
 

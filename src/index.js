@@ -38,6 +38,7 @@ const PORT = process.env.PORT || 5000;
 
     const context = async({ req }) => {
         const { operationName } = req.body;
+        console.log(operationName)
         let user = {};
 
         if(!['Login'].includes(operationName)) {

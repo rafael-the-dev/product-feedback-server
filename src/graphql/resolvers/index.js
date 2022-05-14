@@ -150,6 +150,10 @@ const resolvers = {
             } catch(err) {
                 console.log(err)
             }
+        },
+        validateToken(_, { token }) {
+            const user = jwt.verify(token, SECRET_KEY);
+            return { name: user.name, token, username: user.username}
         }
     },
     Subscription: {
