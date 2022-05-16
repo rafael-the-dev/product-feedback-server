@@ -82,7 +82,7 @@ const resolvers = {
         },
         async deleteFeedback(_, { id }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
-
+            //console.log(id)
             await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
             
             if(feedback.user.username !== user.username ) throw new ForbiddenError("Only the author can delete this feedback")
@@ -96,13 +96,14 @@ const resolvers = {
         async editFeedback(_, { feedback, id }, { user }) {
             const db = hasDB({ dbConfig, key: "feedbacksDB" })
 
-            let savedFeedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
-            if(feedback.user.username !== user.username ) throw new ForbiddenError("Only the author can edit this feedback");
+            const savedFeedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
+            if(savedFeedback.user.username !== user.username ) throw new ForbiddenError("Only the author can edit this feedback");
             
             await db.updateOne({ ID: id }, { $set: { ...feedback }});
-            savedFeedback = await db.findOne({ ID: id });
-            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: savedFeedback });
-            return savedFeedback;
+            const updatedFeedback = await db.findOne({ ID: id });
+
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: updatedFeedback });
+            return updatedFeedback;
 
         },
         async upVoteFeedback(_, { id }) {
@@ -111,9 +112,10 @@ const resolvers = {
             const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
             await db.updateOne({ ID: id }, { $set: { upVotes: feedback.upVotes + 1 }});
             
-            const upDatedFeedback = await db.findOne({ ID: id });
-            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: upDatedFeedback })
-            return upDatedFeedback;
+            const updatedFeedback = await db.findOne({ ID: id });
+
+            pubsub.publish("FEEDBACK_UPDATED", { feedbackUpdated: updatedFeedback })
+            return updatedFeedback;
         },
         async login(_, { password, username }, ) {
             const usersDB = hasDB({ dbConfig, key: "usersDB" })
@@ -121,11 +123,13 @@ const resolvers = {
             const user = await usersDB.findOne({ username });
             if(user === null) throw new UserInputError("Username or password Invalid");
             
-            const acessToken = jwt.sign({ name: user.name, username }, SECRET_KEY, { expiresIn: "1h" });
+            const acessToken = jwt.sign({ name: user.name, username }, SECRET_KEY, { expiresIn: "15m" });
             //console.log(acessToken)
+            const verifiedToken = jwt.verify(acessToken, SECRET_KEY);
+            //console.log(verifiedToken)
             if(await bcrypt.compare(password, user.password)) {
                 
-                return { name: user.name, token: acessToken, username };
+                return { acessToken: { expiresIn: verifiedToken.exp, token: acessToken }, name: user.name, username };
             } else {
                 throw new UserInputError("Username or password Invalid");
             }
@@ -151,9 +155,14 @@ const resolvers = {
                 console.log(err)
             }
         },
+        revalidateToken(_, args, { user }) {
+            const acessToken = jwt.sign({ name: user.name, username: user.username }, SECRET_KEY, { expiresIn: "15m" });
+            const verifiedUser = jwt.verify(acessToken, SECRET_KEY);
+            return { expiresIn: verifiedUser.exp, token: acessToken };
+        },
         validateToken(_, { token }) {
             const user = jwt.verify(token, SECRET_KEY);
-            return { name: user.name, token, username: user.username}
+            return { acessToken: { expiresIn: user.exp, token }, name: user.name, username: user.username };
         }
     },
     Subscription: {

@@ -37,6 +37,17 @@ const typeDefs = gql`
         username: String!
     }
 
+    type AcessToken {
+        expiresIn: Int!
+        token: String!
+    }
+
+    type LoggedUser {
+        acessToken: AcessToken!
+        name: String!
+        username: String!
+    }
+
     type FeedbackDeleteStatus {
         ID: String!
         status: String!
@@ -87,9 +98,10 @@ const typeDefs = gql`
         addFeedback(feedback: FeedbackInput!): Feedback
         deleteFeedback(id: String!): FeedbackDeleteStatus
         editFeedback(id: String!, feedback: FeedbackInput!): Feedback!
-        login(username: String!, password: String!): RegisteredUser!
+        login(username: String!, password: String!): LoggedUser!
         registerUser(user: RegisteredUserInput): RegisteredUser!
-        validateToken(token: String!): RegisteredUser!
+        revalidateToken: AcessToken!
+        validateToken(token: String!): LoggedUser!
         upVoteFeedback(id: String!): Feedback
     }
 
