@@ -81,13 +81,14 @@ const resolvers = {
             return result;
         },
         async deleteFeedback(_, { id }, { user }) {
-            const db = hasDB({ dbConfig, key: "feedbacksDB" })
-            //console.log(id)
-            await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
+            const db = hasDB({ dbConfig, key: "feedbacksDB" });
+
+            const feedback = await fetchByID({ db, errorMessage: "Feedback not found", filter: { ID: id } });//await db.findOne({ ID: id });
             
             if(feedback.user.username !== user.username ) throw new ForbiddenError("Only the author can delete this feedback")
             
             await db.deleteOne({ ID: id });
+
             const feedbackDeleted = { ID: id, status: "deleted" };
             pubsub.publish('FEEDBACK_DELETED', { feedbackDeleted }); 
             return feedbackDeleted;
@@ -123,7 +124,7 @@ const resolvers = {
             const user = await usersDB.findOne({ username });
             if(user === null) throw new UserInputError("Username or password Invalid");
             
-            const acessToken = jwt.sign({ name: user.name, username }, SECRET_KEY, { expiresIn: "15m" });
+            const acessToken = jwt.sign({ name: user.name, username }, SECRET_KEY, { expiresIn: "25m" });
             //console.log(acessToken)
             const verifiedToken = jwt.verify(acessToken, SECRET_KEY);
             //console.log(verifiedToken)
@@ -138,22 +139,18 @@ const resolvers = {
             const usersDB = hasDB({ dbConfig, key: "usersDB" })
             const { name, username, password } = user;
 
-            try {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                const oldUser = await usersDB.findOne({ username });
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const oldUser = await usersDB.findOne({ username });
 
-                if(oldUser === null) {
-                    await usersDB.insertOne({
-                        name,
-                        password: hashedPassword,
-                        username
-                    });
-                    return { name, username };
-                }
-                throw new UserInputError("Username exists");
-            } catch(err) {
-                console.log(err)
+            if(oldUser === null) {
+                await usersDB.insertOne({
+                    name,
+                    password: hashedPassword,
+                    username
+                });
+                return { name, username };
             }
+            throw new UserInputError("Username exists");
         },
         revalidateToken(_, args, { user }) {
             const acessToken = jwt.sign({ name: user.name, username: user.username }, SECRET_KEY, { expiresIn: "15m" });
