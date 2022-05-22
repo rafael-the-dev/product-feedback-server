@@ -1,9 +1,10 @@
 {
   "name": "graql--subscriptions",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "nodemon src/index"
+    "start": "nodemon src/index",
+    "build": "node src/index"
   },
   "author": "rafael tivane",
   "license": "ISC",
