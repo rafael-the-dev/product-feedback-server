@@ -15,7 +15,7 @@ const { createMongoDBConnection, dbConfig } = require("./connections");
 
 const pubsub = new PubSub();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 
 (async () => {
